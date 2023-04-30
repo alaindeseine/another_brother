@@ -47,5 +47,5 @@ dependencies {
     // implementation 'com.brother.sdk:printer:4.6.4'
     implementation 'com.brother.typeb:print:1.0.0'
     // implementation project(":brotherprintlibrary")
-    compile fileTree(dir: 'brotherprintlibrary', include: ['*.aar'])
+    implementation fileTree(include: '*.aar', dir: 'brotherprintlibrary')
 }
