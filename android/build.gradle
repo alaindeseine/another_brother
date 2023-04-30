@@ -19,7 +19,7 @@ rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
-        //jcenter()
+        jcenter()
         maven {
             url "https://rouninlabs.jfrog.io/artifactory/rounin-libs-external/"
         }
