@@ -1,3 +1,0 @@
-configurations.maybeCreate("default")
-artifacts.add("default", file('BrotherPrintLibrary.aar'))
-apply plugin: 'com.android.library'
