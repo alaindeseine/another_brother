@@ -25,7 +25,7 @@ rootProject.allprojects {
             url "https://rouninlabs.jfrog.io/artifactory/rounin-libs-external/"
         }
         maven {
-            url "$project.projectDir/libs"
+            url "/Users/alain/sites/cabinfo.dev/flutter/another_brother/android/libs"
         }
     }
 }
