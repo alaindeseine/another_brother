@@ -16,11 +16,16 @@ class BinPaper_TD2125NWB implements ACustomPaper {
 
   static const RD_W51H26mm = const BinPaper_TD2125NWB._internal(
       "TD2125NWB-RD51_26mm", "$_rootDir/TD2125NWB-RD51_26mm.bin");
+
+  static const RD_W57H76mm = const BinPaper_TD2125NWB._internal(
+      "TD2125NWB-RD57_76mm", "$_rootDir/TD2125NWB-RD57_76mm.bin");
+
   static const UNSUPPORTED =
       const BinPaper_TD2125NWB._internal("UNSUPPORTED", "");
 
   static final _values = [
     RD_W51H26mm,
+    RD_W57H76mm,
     UNSUPPORTED,
   ];
 
