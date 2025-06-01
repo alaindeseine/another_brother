@@ -1033,11 +1033,25 @@ class BinPaper_TD2350D implements ACustomPaper {
       "TD2350D-58mm", "$_rootDir/TD2350D-58mm.bin");
   static const W57mm = const BinPaper_TD2350D._internal(
       "TD2350D-57mm", "$_rootDir/TD2350D-57mm.bin");
+  static const W57_H32mm = const BinPaper_TD2350D._internal(
+      "TD2350D-57mm_32mm", "$_rootDir/TD2350D-57mm_32mm.bin");
+  static const W57_H51mm = const BinPaper_TD2350D._internal(
+      "TD2350D-57mm_51mm", "$_rootDir/TD2350D-57mm_51mm.bin");
+  static const W57_H76mm = const BinPaper_TD2350D._internal(
+      "TD2350D-57mm_76mm", "$_rootDir/TD2350D-57mm_76mm.bin");
 
   static const UNSUPPORTED =
       const BinPaper_TD2350D._internal("UNSUPPORTED", "");
 
-  static final _values = [W51_H26mm, W58mm, W57mm, UNSUPPORTED];
+  static final _values = [
+    W51_H26mm,
+    W58mm,
+    W57mm,
+    W57_H32mm,
+    W57_H51mm,
+    W57_H76mm,
+    UNSUPPORTED
+  ];
 
   static List<BinPaper_TD2350D> getValues() => List.from(_values);
 
