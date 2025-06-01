@@ -5,7 +5,6 @@ import 'dart:ui';
 
 import 'package:another_brother/printer_info.dart';
 import 'package:another_brother/type_b_commands.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:path_provider/path_provider.dart';
