@@ -294,8 +294,11 @@ static NSObject<FlutterPluginRegistrar>* _registrarFlutter;
     else if([@"MW_270" isEqualToString:name]) {
         return BRLMPrinterModelMW_270;
     }
-    
-    
+    else if([@"TD_2350D" isEqualToString:name]) {
+        return BRLMPrinterModelTD_2350D_203; // Default to 203 DPI variant
+    }
+
+
     return BRLMPrinterModelUnknown;
     
 }
@@ -1428,6 +1431,14 @@ static NSObject<FlutterPluginRegistrar>* _registrarFlutter;
              || printerModel == BRLMPrinterModelTD_2125NWB
              || printerModel == BRLMPrinterModelTD_2135N
              || printerModel == BRLMPrinterModelTD_2135NWB
+             || printerModel == BRLMPrinterModelTD_2350D_203
+             || printerModel == BRLMPrinterModelTD_2350D_300
+             || printerModel == BRLMPrinterModelTD_2350DF_203
+             || printerModel == BRLMPrinterModelTD_2350DF_300
+             || printerModel == BRLMPrinterModelTD_2350DSA_203
+             || printerModel == BRLMPrinterModelTD_2350DSA_300
+             || printerModel == BRLMPrinterModelTD_2350DFSA_203
+             || printerModel == BRLMPrinterModelTD_2350DFSA_300
              ) {
         return [BrotherUtils tdPrintSettingsFromMapWithValue:map];
     }

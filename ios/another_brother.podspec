@@ -26,13 +26,12 @@ A new flutter plugin project.
   #s.vendored_frameworks = 'BRPtouchPrinterKit.framework'
   
   #s.dependency 'BRLMPrinterKit'
-  s.dependency 'BRLMPrinterKit_AB'
-  s.dependency 'BROTHERSDK'
+  s.dependency 'BRLMPrinterKit', '~> 4.12.0'
   
   #s.dependency 'BRLMPrinterKitBind'
   
   s.dependency 'Flutter'
-  s.platform = :ios, '9.0'
+  s.platform = :ios, '13.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
