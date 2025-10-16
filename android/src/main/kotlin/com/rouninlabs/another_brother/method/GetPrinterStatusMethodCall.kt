@@ -11,6 +11,7 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Command for getting the print status of a Brother printer.
@@ -22,75 +23,94 @@ class GetPrinterStatusMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
         const val METHOD_NAME = "getPrinterStatus"
     }
 
+    private val hasResponded = AtomicBoolean(false)
+
     fun execute() {
+        // Use a job that can be cancelled to prevent channel crashes
+        val job = GlobalScope.launch(Dispatchers.IO) {
+            try {
+                val dartPrintInfo: HashMap<String, Any> = call.argument<HashMap<String, Any>>("printInfo")!!
+                val printerId: String = call.argument<String>("printerId")!!
 
-        GlobalScope.launch(Dispatchers.IO) {
+                // Decoded Printer Info
+                val printInfo = printerInfofromMap(context = context, flutterAssets = flutterAssets, map = dartPrintInfo)
 
-            val dartPrintInfo: HashMap<String, Any> = call.argument<HashMap<String, Any>>("printInfo")!!
-            val printerId: String = call.argument<String>("printerId")!!
+                // A print request is considered one-time if there was no printer tracked with this ID.
+                // this will open a new connection and close it when done.
+                // If it is not one-time it means someone must have already opened a connection using
+                // the startCommunication() API. When endCommunication() is called that printer will be removed.
+                // Create Printer
+                val trackedPrinter = BrotherManager.getPrinter(printerId = printerId)
+                val isOneTime:Boolean = trackedPrinter == null;
+                val printer = trackedPrinter?: Printer()
 
-            // Decoded Printer Info
-            val printInfo = printerInfofromMap(context = context, flutterAssets = flutterAssets, map = dartPrintInfo)
-
-            // A print request is considered one-time if there was no printer tracked with this ID.
-            // this will open a new connection and close it when done.
-            // If it is not one-time it means someone must have already opened a connection using
-            // the startCommunication() API. When endCommunication() is called that printer will be removed.
-            // Create Printer
-            val trackedPrinter = BrotherManager.getPrinter(printerId = printerId)
-            val isOneTime:Boolean = trackedPrinter == null;
-            val printer = trackedPrinter?: Printer()
-
-            // Prepare local connection.
-            val error = setupConnectionManagers(context = context, printer = printer, printInfo = printInfo)
-            if (error != PrinterInfo.ErrorCode.ERROR_NONE) {
-                // There was an error notify
-                withContext(Dispatchers.Main) {
-                    // Set result Printer status.
-                    result.success(PrinterStatus().apply {
-                        errorCode = error
-                    }.toMap())
+                // Prepare local connection.
+                val error = setupConnectionManagers(context = context, printer = printer, printInfo = printInfo)
+                if (error != PrinterInfo.ErrorCode.ERROR_NONE) {
+                    // There was an error notify
+                    if (isActive && hasResponded.compareAndSet(false, true)) {
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = error
+                            }.toMap())
+                        }
+                    }
+                    return@launch
                 }
-                return@launch
-            }
 
-            // Set Printer Info
-            printer.printerInfo = printInfo
+                // Set Printer Info
+                printer.printerInfo = printInfo
 
-            // Add timeout to prevent crash when channel is closed
-            val printResult = withTimeoutOrNull(2000L) { // 2 second timeout
                 // Start communication
                 if (isOneTime) {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                 }
 
-                // Get printer status
-                val status = printer.printerStatus
+                // Check if still active before Brother SDK call
+                if (!isActive) return@launch
+
+                // Get printer status (this is the blocking call)
+                val printResult = printer.printerStatus
+
+                // Check if still active before ending communication
+                if (!isActive) return@launch
 
                 // End Communication
                 if (isOneTime) {
                     val connectionClosed: Boolean = printer.endCommunication()
                 }
 
-                status
-            }
+                // Check if still active before responding
+                if (isActive && hasResponded.compareAndSet(false, true)) {
+                    val dartPrintStatus = printResult.toMap()
+                    withContext(Dispatchers.Main) {
+                        result.success(dartPrintStatus)
+                    }
+                }
 
-            // Handle timeout or success
-            val dartPrintStatus = if (printResult != null) {
-                printResult.toMap()
-            } else {
-                // Timeout occurred, return communication error
-                PrinterStatus().apply {
-                    errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
-                }.toMap()
+            } catch (e: Exception) {
+                // Handle any exceptions and only respond if still active
+                if (isActive && hasResponded.compareAndSet(false, true)) {
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                }
             }
+        }
 
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
+        // Send timeout response if job takes too long
+        GlobalScope.launch {
+            delay(1500L) // 1.5 second timeout
+            if (job.isActive && hasResponded.compareAndSet(false, true)) {
+                job.cancel()
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            }
         }
 
     }
