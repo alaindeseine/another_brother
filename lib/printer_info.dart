@@ -2702,19 +2702,27 @@ class Printer {
   /// Print the image file or print data file (.prn) using print settings set by setPrinterInfo.
   ///
   /// [filepath] The image (.jpg/.jpeg, .bmp, .png) file path or print data (.prn) path to be printed.
-  Future<PrinterStatus> printFile(String filepath) async {
+  /// [timeout] Optional timeout duration. If not provided, uses connection-specific defaults.
+  Future<PrinterStatus> printFile(String filepath, {Duration? timeout}) async {
     var params = {
       "printerId": mPrinterId,
       "printInfo": mPrinterInfo.toMap(),
       "filePath": filepath
     };
 
-    final Map resultMap = await _channel.invokeMethod("printFile", params);
-    print("Received Result: $resultMap");
+    try {
+      final timeoutDuration = timeout ?? _getTimeoutForConnection();
+      final Map resultMap = await _channel.invokeMethod("printFile", params)
+          .timeout(
+            timeoutDuration,
+            onTimeout: () => _createTimeoutErrorMap(),
+          );
 
-    PrinterStatus status = PrinterStatus.fromMap(resultMap);
-
-    return status;
+      print("Received Result: $resultMap");
+      return PrinterStatus.fromMap(resultMap);
+    } catch (e) {
+      return _createErrorStatus(ErrorCode.ERROR_COMMUNICATION_ERROR);
+    }
   }
 
   static Future<String> get platformVersion async {
@@ -2747,7 +2755,9 @@ class Printer {
   }
 
   /// Print the image using print settings set by setPrinterInfo.
-  Future<PrinterStatus> printImage(Image image) async {
+  ///
+  /// [timeout] Optional timeout duration. If not provided, uses connection-specific defaults.
+  Future<PrinterStatus> printImage(Image image, {Duration? timeout}) async {
     var imageBytes = await image.toByteData(format: ImageByteFormat.png);
     if (imageBytes == null) {
       return PrinterStatus(errorCode: ErrorCode.ERROR_UNSUPPORTED_MEDIA);
@@ -2764,31 +2774,49 @@ class Printer {
       "imageBytes": outByteArray
     };
 
-    final Map resultMap = await _channel.invokeMethod("printImage", params);
+    try {
+      final timeoutDuration = timeout ?? _getTimeoutForConnection();
+      final Map resultMap = await _channel.invokeMethod("printImage", params)
+          .timeout(
+            timeoutDuration,
+            onTimeout: () => _createTimeoutErrorMap(),
+          );
 
-    print("Print Result: ${resultMap} ");
-
-    PrinterStatus status = PrinterStatus.fromMap(resultMap);
-
-    return status;
+      print("Print Result: ${resultMap} ");
+      return PrinterStatus.fromMap(resultMap);
+    } catch (e) {
+      return _createErrorStatus(ErrorCode.ERROR_COMMUNICATION_ERROR);
+    }
   }
 
   /// Print the image files using print settings set by setPrinterInfo.
-  Future<PrinterStatus> printFileList(List<String> fileList) async {
+  ///
+  /// [timeout] Optional timeout duration. If not provided, uses connection-specific defaults.
+  Future<PrinterStatus> printFileList(List<String> fileList, {Duration? timeout}) async {
     var params = {
       "printerId": mPrinterId,
       "printInfo": mPrinterInfo.toMap(),
       "filePathList": fileList
     };
 
-    final Map resultMap = await _channel.invokeMethod("printFileList", params);
-    PrinterStatus status = PrinterStatus.fromMap(resultMap);
+    try {
+      final timeoutDuration = timeout ?? _getTimeoutForConnection();
+      final Map resultMap = await _channel.invokeMethod("printFileList", params)
+          .timeout(
+            timeoutDuration,
+            onTimeout: () => _createTimeoutErrorMap(),
+          );
 
-    return status;
+      return PrinterStatus.fromMap(resultMap);
+    } catch (e) {
+      return _createErrorStatus(ErrorCode.ERROR_COMMUNICATION_ERROR);
+    }
   }
 
   /// Print the pdf file using print settings set by setPrinterInfo. Available on Android 5.0 or later.
-  Future<PrinterStatus> printPdfFile(String filepath, int pagenum) async {
+  ///
+  /// [timeout] Optional timeout duration. If not provided, uses connection-specific defaults.
+  Future<PrinterStatus> printPdfFile(String filepath, int pagenum, {Duration? timeout}) async {
     var params = {
       "printerId": mPrinterId,
       "printInfo": mPrinterInfo.toMap(),
@@ -2796,10 +2824,18 @@ class Printer {
       "pagenum": pagenum
     };
 
-    final Map resultMap = await _channel.invokeMethod("printPdfFile", params);
-    PrinterStatus status = PrinterStatus.fromMap(resultMap);
+    try {
+      final timeoutDuration = timeout ?? _getTimeoutForConnection();
+      final Map resultMap = await _channel.invokeMethod("printPdfFile", params)
+          .timeout(
+            timeoutDuration,
+            onTimeout: () => _createTimeoutErrorMap(),
+          );
 
-    return status;
+      return PrinterStatus.fromMap(resultMap);
+    } catch (e) {
+      return _createErrorStatus(ErrorCode.ERROR_COMMUNICATION_ERROR);
+    }
   }
 
   /*
@@ -3068,17 +3104,58 @@ class Printer {
   }
 
   /// Retrieves the printer status.
-  Future<PrinterStatus> getPrinterStatus() async {
+  ///
+  /// [timeout] Optional timeout duration. If not provided, uses connection-specific defaults:
+  /// - Bluetooth: 3 seconds
+  /// - Network: 5 seconds
+  /// - USB: 2 seconds
+  Future<PrinterStatus> getPrinterStatus({Duration? timeout}) async {
     var params = {
       "printerId": mPrinterId,
       "printInfo": mPrinterInfo.toMap(),
     };
 
-    final Map resultMap =
-        await _channel.invokeMethod("getPrinterStatus", params);
-    PrinterStatus status = PrinterStatus.fromMap(resultMap);
+    try {
+      final timeoutDuration = timeout ?? _getTimeoutForConnection();
+      final Map resultMap = await _channel.invokeMethod("getPrinterStatus", params)
+          .timeout(
+            timeoutDuration,
+            onTimeout: () => _createTimeoutErrorMap(),
+          );
 
-    return status;
+      return PrinterStatus.fromMap(resultMap);
+    } catch (e) {
+      // Protection supplémentaire pour autres erreurs
+      return _createErrorStatus(ErrorCode.ERROR_COMMUNICATION_ERROR);
+    }
+  }
+
+  /// Get timeout duration based on connection type
+  Duration _getTimeoutForConnection() {
+    switch (mPrinterInfo.port) {
+      case Port.BLUETOOTH:
+        return Duration(seconds: 3); // Bluetooth souvent instable
+      case Port.NET:
+        return Duration(seconds: 5); // Réseau plus fiable mais peut être lent
+      case Port.USB:
+        return Duration(seconds: 2); // Connexion directe, rapide
+      default:
+        return Duration(seconds: 3); // Défaut conservateur
+    }
+  }
+
+  /// Create error map for timeout scenarios
+  Map<String, dynamic> _createTimeoutErrorMap() {
+    return {
+      "errorCode": {"id": 0, "name": "ERROR_COMMUNICATION_ERROR"}
+    };
+  }
+
+  /// Create error status for exception scenarios
+  PrinterStatus _createErrorStatus(ErrorCode errorCode) {
+    PrinterStatus errorStatus = PrinterStatus();
+    errorStatus.errorCode = errorCode;
+    return errorStatus;
   }
 
   /// Update printer settings. See Printer Configurations for available values.
