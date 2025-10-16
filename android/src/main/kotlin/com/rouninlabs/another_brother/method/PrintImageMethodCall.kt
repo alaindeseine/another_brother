@@ -65,27 +65,34 @@ class PrintImageMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
             printer.printerInfo = printInfo
             val specs = printer.printerSpec
 
-            // Start communication
-            if (isOneTime) {
-                // Note: Starting a communication does not seem to impact whether we can print or
-                // not. Calling print without calling this seems to still print fine.
-                val started: Boolean = printer.startCommunication()
-            }
-
-            // Print Image
-            val printResult = try {
-                printer.printImage(bitmap)
-            }
-            catch (e:Exception ) {
-                Log.e("another-brother", "Print image error: ", e);
-                PrinterStatus().apply {
-                    errorCode = PrinterInfo.ErrorCode.ERROR_SYSTEM_ERROR
+            // Add timeout to prevent crash when channel is closed
+            val printResult = withTimeoutOrNull(5000L) { // 5 second timeout for printing
+                // Start communication
+                if (isOneTime) {
+                    // Note: Starting a communication does not seem to impact whether we can print or
+                    // not. Calling print without calling this seems to still print fine.
+                    val started: Boolean = printer.startCommunication()
                 }
-            }
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // Print Image
+                val result = try {
+                    printer.printImage(bitmap)
+                }
+                catch (e:Exception ) {
+                    Log.e("another-brother", "Print image error: ", e);
+                    PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_SYSTEM_ERROR
+                    }
+                }
+
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                result
+            } ?: PrinterStatus().apply {
+                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
             }
             // Recycle bitmap
             if (!bitmap.isRecycled) {

@@ -57,23 +57,36 @@ class GetPrinterStatusMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            // Start communication
-            if (isOneTime) {
-                // Note: Starting a communication does not seem to impact whether we can print or
-                // not. Calling print without calling this seems to still print fine.
-                val started: Boolean = printer.startCommunication()
+            // Add timeout to prevent crash when channel is closed
+            val printResult = withTimeoutOrNull(2000L) { // 2 second timeout
+                // Start communication
+                if (isOneTime) {
+                    // Note: Starting a communication does not seem to impact whether we can print or
+                    // not. Calling print without calling this seems to still print fine.
+                    val started: Boolean = printer.startCommunication()
+                }
+
+                // Get printer status
+                val status = printer.printerStatus
+
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                status
             }
 
-            // Print Image
-            val printResult = printer.printerStatus
-
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+            // Handle timeout or success
+            val dartPrintStatus = if (printResult != null) {
+                printResult.toMap()
+            } else {
+                // Timeout occurred, return communication error
+                PrinterStatus().apply {
+                    errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                }.toMap()
             }
 
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
            withContext(Dispatchers.Main) {
                // Set result Printer status.
                result.success(dartPrintStatus)
