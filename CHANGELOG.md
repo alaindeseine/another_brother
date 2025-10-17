@@ -1,8 +1,8 @@
 ## 0.0.1+fix-timeouts
 - **CRITICAL FIX**: Implement proper coroutine cancellation to prevent SIGABRT crashes
-- **SDK UPDATE**: Upgrade Brother SDK to 4.13.0 for bug fixes
-  - Android: com.brother.sdk:printer:4.13.0@aar
-  - iOS: BRLMPrinterKit ~> 4.13.0
+- **SDK UPDATE**: Upgrade Brother SDK for bug fixes (mixed versions for optimal stability)
+  - Android: com.brother.sdk:printer:4.12.0@aar (latest available)
+  - iOS: BRLMPrinterKit ~> 4.13.0 (latest available with bug fixes)
 - **CRASH PREVENTION**: Add timeout protection for getPrinterStatus() and print methods
   - Native Android timeout: 1.5s with job cancellation
   - Dart timeout: 3s (backup protection)
