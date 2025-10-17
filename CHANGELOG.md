@@ -1,3 +1,16 @@
+## 0.0.1+fix-timeouts
+- **CRITICAL FIX**: Implement proper coroutine cancellation to prevent SIGABRT crashes
+- **SDK UPDATE**: Upgrade Brother SDK to 4.13.0 for bug fixes
+  - Android: com.brother.sdk:printer:4.13.0@aar
+  - iOS: BRLMPrinterKit ~> 4.13.0
+- **CRASH PREVENTION**: Add timeout protection for getPrinterStatus() and print methods
+  - Native Android timeout: 1.5s with job cancellation
+  - Dart timeout: 3s (backup protection)
+  - AtomicBoolean prevents double responses on closed channels
+- **MONITORING SUPPORT**: Fix crashes in apps with periodic printer status checks (30-90s intervals)
+- **TD-2350D**: Maintain full support for TD-2350D printer models
+- **COMPATIBILITY**: Backward compatible, no breaking API changes
+
 ## 0.0.1
 - Initial release with support for both Android and iOS.
 - Includes support for paper bin files.
