@@ -18,6 +18,10 @@
   - Removed 'com.brother.typeb:print:1.0.0' (unused, Maven-only)
   - TypeB functionality included in main SDK
   - Simplifies dependency management
+- **GRADLE BUILD FIX**: Use flatDir repository for local AAR
+  - Changed from 'files()' to flatDir repository approach
+  - Fixes "Direct local .aar file dependencies are not supported when building an AAR"
+  - Allows plugin to be built as AAR for host applications
 - **COMPATIBILITY**: Maintains full TD-2350D support
 - **DEADLINES**: Compliant with Google Play Store requirements
   - November 1, 2025: New submissions deadline

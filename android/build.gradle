@@ -24,6 +24,10 @@ rootProject.allprojects {
         // maven {
         //     url "https://artifacts.rouninlabs.com/rounin-libs-external/"
         // }
+        // flatDir repository for local Brother SDK AAR
+        flatDir {
+            dirs project(':another_brother').file('libs')
+        }
     }
 }
 
@@ -58,8 +62,8 @@ android {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1'
-    // Brother SDK 4.13.0 - Local AAR with 16KB alignment support
-    implementation files('libs/BrotherPrintLibrary-4.13.0.aar')
+    // Brother SDK 4.13.0 - Local AAR with 16KB alignment support (using flatDir)
+    implementation(name: 'BrotherPrintLibrary-4.13.0', ext: 'aar')
     // Note: SDK 4.13.0 includes 16KB page alignment for Android 15+ compatibility
     // TypeB functionality is included in the main SDK, no separate dependency needed
 }
