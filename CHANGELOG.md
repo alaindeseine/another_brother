@@ -14,6 +14,10 @@
 - **SDK SOURCE**: Switch from Maven to local AAR for better control
   - Removed dependency on RounInLabs Maven repository
   - Local SDK ensures consistent 16KB alignment
+- **TYPEB DEPENDENCY CLEANUP**: Removed obsolete TypeB dependency
+  - Removed 'com.brother.typeb:print:1.0.0' (unused, Maven-only)
+  - TypeB functionality included in main SDK
+  - Simplifies dependency management
 - **COMPATIBILITY**: Maintains full TD-2350D support
 - **DEADLINES**: Compliant with Google Play Store requirements
   - November 1, 2025: New submissions deadline

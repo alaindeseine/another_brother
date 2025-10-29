@@ -61,5 +61,5 @@ dependencies {
     // Brother SDK 4.13.0 - Local AAR with 16KB alignment support
     implementation files('libs/BrotherPrintLibrary-4.13.0.aar')
     // Note: SDK 4.13.0 includes 16KB page alignment for Android 15+ compatibility
-    implementation 'com.brother.typeb:print:1.0.0'
+    // TypeB functionality is included in the main SDK, no separate dependency needed
 }
