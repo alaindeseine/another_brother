@@ -1,3 +1,24 @@
+## 0.0.1+upgrade-sdk-4.13.0-16kb
+- **16KB ALIGNMENT FIX**: Upgrade Brother SDK 4.12.0 → 4.13.0 for Android 15+ compliance
+  - Android: BrotherPrintLibrary-4.13.0.aar (local, with 16KB page alignment)
+  - iOS: BRLMPrinterKit ~> 4.13.0
+  - Resolves Google Play Store rejection for 16KB page size requirement
+  - Native libraries properly aligned: libcreatedata.so @ 16KB (0x4000)
+- **ANDROID BUILD TOOLS**: Update Android Gradle Plugin 8.5.0 → 8.5.2
+  - Improved NDK support and build stability
+  - Bug fixes and performance improvements
+- **BLUETOOTH IMPROVEMENTS**: Update flutter_blue_plus 1.12.13 → 1.35.10
+  - Better Android 14+ compatibility
+  - Numerous BLE stability fixes
+  - Improved scanning and connection reliability
+- **SDK SOURCE**: Switch from Maven to local AAR for better control
+  - Removed dependency on RounInLabs Maven repository
+  - Local SDK ensures consistent 16KB alignment
+- **COMPATIBILITY**: Maintains full TD-2350D support
+- **DEADLINES**: Compliant with Google Play Store requirements
+  - November 1, 2025: New submissions deadline
+  - May 1, 2026: All updates deadline
+
 ## 0.0.1
 - Initial release with support for both Android and iOS.
 - Includes support for paper bin files.
