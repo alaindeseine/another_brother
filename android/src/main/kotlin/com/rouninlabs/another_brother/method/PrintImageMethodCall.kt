@@ -65,11 +65,22 @@ class PrintImageMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
             printer.printerInfo = printInfo
             val specs = printer.printerSpec
 
-            // Start communication
+            // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
-                // Note: Starting a communication does not seem to impact whether we can print or
-                // not. Calling print without calling this seems to still print fine.
-                val started: Boolean = printer.startCommunication()
+                try {
+                    // Note: Starting a communication does not seem to impact whether we can print or
+                    // not. Calling print without calling this seems to still print fine.
+                    val started: Boolean = printer.startCommunication()
+                    if (!started) {
+                        Log.w("PrintImage", "Failed to start communication with printer")
+                    }
+                } catch (e: NullPointerException) {
+                    Log.e("PrintImage", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
+                    // Continue anyway - the comment suggests printing may work without startCommunication
+                } catch (e: Exception) {
+                    Log.e("PrintImage", "Error in startCommunication", e)
+                    // Continue anyway - the comment suggests printing may work without startCommunication
+                }
             }
 
             // Print Image

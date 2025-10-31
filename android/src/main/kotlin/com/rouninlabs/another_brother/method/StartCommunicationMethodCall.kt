@@ -1,6 +1,7 @@
 package com.rouninlabs.another_brother.method
 
 import android.content.Context
+import android.util.Log
 import com.brother.ptouch.sdk.Printer
 import com.brother.ptouch.sdk.PrinterInfo
 import com.brother.ptouch.sdk.PrinterStatus
@@ -54,18 +55,29 @@ class StartCommunicationMethodCall(val flutterAssets: FlutterPlugin.FlutterAsset
             // Set Printer Info
             printer.printerInfo = printInfo
 
+            // Start communication with defensive error handling for Bluetooth/WiFi connection issues
+            try {
+                val success = printer.startCommunication()
 
-            val success = printer.startCommunication()
+                if (success) {
+                    BrotherManager.trackPrinter(printerId = printerId, printer = printer)
+                }
 
-            if (success) {
-                BrotherManager.trackPrinter(printerId = printerId, printer = printer)
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(success)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("StartCommunication", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("StartCommunication", "Error in startCommunication", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(success)
-               //result.error("Error", "Method not implemented", "")
-           }
         }
 
     }

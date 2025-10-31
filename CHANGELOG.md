@@ -22,6 +22,17 @@
   - Changed from 'files()' to flatDir repository approach
   - Fixes "Direct local .aar file dependencies are not supported when building an AAR"
   - Allows plugin to be built as AAR for host applications
+- **CRASH FIX**: Add defensive error handling for WiFi socket NPE (Issue HACCP-SYNC-1S)
+  - Fixed NullPointerException in WifiConnection.java:183
+  - Added try-catch in GetPrinterStatusMethodCall.kt around startCommunication()
+  - NPE returns ERROR_COMMUNICATION_ERROR instead of crashing
+  - Improves reliability when WiFi socket is null
+- **CRASH FIX**: Add defensive error handling for Bluetooth connection NPE
+  - Fixed NullPointerException in BluetoothConnection.getPrinterDevice()
+  - Added try-catch in StartCommunicationMethodCall.kt around startCommunication()
+  - Added try-catch in PrintImageMethodCall.kt for one-time print operations
+  - Prevents crashes when Bluetooth device Set is null
+  - Returns false/error instead of crashing the app
 - **COMPATIBILITY**: Maintains full TD-2350D support
 - **DEADLINES**: Compliant with Google Play Store requirements
   - November 1, 2025: New submissions deadline
