@@ -31,6 +31,7 @@
   - Fixed NullPointerException in BluetoothConnection.getPrinterDevice()
   - Added try-catch in StartCommunicationMethodCall.kt around startCommunication()
   - Added try-catch in PrintImageMethodCall.kt for one-time print operations
+  - Added try-catch in PrintPdfFileMethodCall.kt for PDF printing
   - Prevents crashes when Bluetooth device Set is null
   - Returns false/error instead of crashing the app
 - **COMPATIBILITY**: Maintains full TD-2350D support
