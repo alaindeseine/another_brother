@@ -57,27 +57,46 @@ class GetPrinterStatusMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            // Start communication
-            if (isOneTime) {
-                // Note: Starting a communication does not seem to impact whether we can print or
-                // not. Calling print without calling this seems to still print fine.
-                val started: Boolean = printer.startCommunication()
+            // Start communication with defensive error handling
+            try {
+                if (isOneTime) {
+                    // Note: Starting a communication does not seem to impact whether we can print or
+                    // not. Calling print without calling this seems to still print fine.
+                    val started: Boolean = printer.startCommunication()
+                    if (!started) {
+                        Log.w("GetPrinterStatus", "Failed to start communication with printer")
+                    }
+                }
+
+                // Get Printer Status - this may throw NPE if socket is null
+                val printResult = printer.printerStatus
+
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetPrinterStatus", "NPE in getPrinterStatus - Socket connection failed", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("GetPrinterStatus", "Error in getPrinterStatus", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap())
+                }
             }
-
-            // Print Image
-            val printResult = printer.printerStatus
-
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
-            }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }
