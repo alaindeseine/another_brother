@@ -27,13 +27,18 @@
   - Added try-catch in GetPrinterStatusMethodCall.kt around startCommunication()
   - NPE returns ERROR_COMMUNICATION_ERROR instead of crashing
   - Improves reliability when WiFi socket is null
-- **CRASH FIX**: Add defensive error handling for Bluetooth connection NPE
-  - Fixed NullPointerException in BluetoothConnection.getPrinterDevice()
-  - Added try-catch in StartCommunicationMethodCall.kt around startCommunication()
-  - Added try-catch in PrintImageMethodCall.kt for one-time print operations
-  - Added try-catch in PrintPdfFileMethodCall.kt for PDF printing
-  - Prevents crashes when Bluetooth device Set is null
-  - Returns false/error instead of crashing the app
+- **CRASH FIX**: Comprehensive defensive error handling for Bluetooth/WiFi connection NPE
+  - Fixed NullPointerException in BluetoothConnection.getPrinterDevice() and getStream()
+  - Added try-catch around startCommunication() in 36 method call handlers
+  - Protected all Print*, Get*, Update*, Send*, Replace*, and Transfer operations
+  - Prevents crashes when Bluetooth device Set or WiFi Socket is null
+  - Returns false/error gracefully instead of crashing the app
+  - Complete list of protected methods:
+    - Print: PrintImageMethodCall, PrintPdfMethodCall, PrintPdfFileMethodCall, PrintFileMethodCall, PrintFileListMethodCall, StartPttPrintMethodCall, FlushPttPrintMethodCall
+    - Get: All 16 Get* methods (GetPrinterStatus, GetSerialNumber, GetPrinterSettings, GetSystemReport, GetTemplateList, GetPdfPages, GetPdfFilePages, GetMediaVersion, GetMediaFileVersion, GetLabelParam, GetLabelInfo, GetFirmVersion, GetFirmFileVersion, GetBootMode, GetBluetoothPreference, GetBatteryWeak, GetBatteryInfo)
+    - Update: UpdatePrinterSettings, UpdateFirm, UpdateBluetoothPreference
+    - Send/Replace/Other: SendDatabase, SendBinary, SendBinaryFile, ReplaceText, ReplaceTextName, ReplaceTextIndex, RemoveTemplate, Transfer, Cancel
+  - Also protects StartCommunicationMethodCall for explicit communication management
 - **COMPATIBILITY**: Maintains full TD-2350D support
 - **DEADLINES**: Compliant with Google Play Store requirements
   - November 1, 2025: New submissions deadline

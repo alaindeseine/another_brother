@@ -53,11 +53,22 @@ class GetSerialNumberMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            // Start communication
+            // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
-                // Note: Starting a communication does not seem to impact whether we can print or
-                // not. Calling print without calling this seems to still print fine.
-                val started: Boolean = printer.startCommunication()
+                try {
+                    // Note: Starting a communication does not seem to impact whether we can print or
+                    // not. Calling print without calling this seems to still print fine.
+                    val started: Boolean = printer.startCommunication()
+                    if (!started) {
+                        Log.w("GetSerialNumber", "Failed to start communication with printer")
+                    }
+                } catch (e: NullPointerException) {
+                    Log.e("GetSerialNumber", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
+                    // Continue anyway - the comment suggests operation may work without startCommunication
+                } catch (e: Exception) {
+                    Log.e("GetSerialNumber", "Error in startCommunication", e)
+                    // Continue anyway - the comment suggests operation may work without startCommunication
+                }
             }
 
             val serialNumber = printer.serialNumber
