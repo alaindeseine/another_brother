@@ -64,25 +64,48 @@ class GetPrinterSettingsMethodCall(val flutterAssets: FlutterPlugin.FlutterAsset
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetPrinterSettings", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(hashMapOf(
+                                "printerStatus" to PrinterStatus().apply {
+                                    errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                                }.toMap(),
+                                "values" to hashMapOf<Map<String, Any>, Any>()
+                            ))
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetPrinterSettings", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap(),
+                            "values" to hashMapOf<Map<String, Any>, Any>()
+                        ))
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetPrinterSettings", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                            }.toMap(),
+                            "values" to hashMapOf<Map<String, Any>, Any>()
+                        ))
+                    }
+                    return@launch
                 }
             }
 
             val settingKeys = dartKeys.map { printerSettingItemFromMap(it) }
             val outValues:MutableMap<PrinterInfo.PrinterSettingItem, String> = hashMapOf()
-            
-            // Get settings
+
+            // Get Printer Settings - only if startCommunication succeeded
             val printResult = printer.getPrinterSettings(settingKeys, outValues);
 
             // End Communication

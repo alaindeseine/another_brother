@@ -56,21 +56,30 @@ class GetBatteryWeakMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetBatteryWeak", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(-1)
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetBatteryWeak", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(-1)
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetBatteryWeak", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(-1)
+                    }
+                    return@launch
                 }
             }
 
+            // Get Battery Weak - only if startCommunication succeeded
             val batterWeak = printer.batteryWeak
 
             // End Communication

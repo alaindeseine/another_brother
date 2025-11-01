@@ -58,22 +58,30 @@ class GetLabelParamMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetLabelParam", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(LabelParam().toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetLabelParam", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(LabelParam().toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetLabelParam", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(LabelParam().toMap())
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Get Label Param - only if startCommunication succeeded
             val labelParam = printer.labelParam
 
             // End Communication

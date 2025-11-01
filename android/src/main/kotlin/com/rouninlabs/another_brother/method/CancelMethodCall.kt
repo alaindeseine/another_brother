@@ -54,22 +54,30 @@ class CancelMethodCall(val flutterAssets:FlutterPlugin.FlutterAssets, val contex
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("Cancel", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(false)
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("Cancel", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(false)
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("Cancel", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(false)
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Cancel - only if startCommunication succeeded
             val cancelResult = printer.cancel()
 
             // End Communication

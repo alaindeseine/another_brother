@@ -63,23 +63,46 @@ class GetTemplateListMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetTemplateList", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(hashMapOf<String, Any>(
+                                "printerStatus" to PrinterStatus().apply {
+                                    errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                                }.toMap(),
+                                "templateList" to arrayListOf<Map<String, Any>>()
+                            ))
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetTemplateList", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf<String, Any>(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap(),
+                            "templateList" to arrayListOf<Map<String, Any>>()
+                        ))
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetTemplateList", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf<String, Any>(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                            }.toMap(),
+                            "templateList" to arrayListOf<Map<String, Any>>()
+                        ))
+                    }
+                    return@launch
                 }
             }
 
             val templateList:ArrayList<TemplateInfo> = arrayListOf()
-            // Get templates
+            // Get Template List - only if startCommunication succeeded
             val printResult = printer.getTemplateList(templateList)
 
             // End Communication

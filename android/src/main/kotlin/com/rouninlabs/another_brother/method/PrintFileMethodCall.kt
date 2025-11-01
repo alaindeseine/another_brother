@@ -61,22 +61,36 @@ class PrintFileMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val co
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("PrintFile", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap(context = context))
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("PrintFile", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap(context = context))
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("PrintFile", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap(context = context))
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Print File - only if startCommunication succeeded
             val printResult = printer.printFile(filePath)
 
             // End Communication

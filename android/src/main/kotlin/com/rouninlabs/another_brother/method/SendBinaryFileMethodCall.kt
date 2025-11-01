@@ -61,22 +61,36 @@ class SendBinaryFileMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("SendBinaryFile", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("SendBinaryFile", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("SendBinaryFile", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap())
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Send Binary File - only if startCommunication succeeded
             val printResult = printer.sendBinaryFile(filePath)
 
             // End Communication

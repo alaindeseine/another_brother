@@ -59,21 +59,36 @@ class FlushPttPrintMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("FlushPttPrint", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("FlushPttPrint", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("FlushPttPrint", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap())
+                    }
+                    return@launch
                 }
             }
 
+            // Flush PTT Print - only if startCommunication succeeded
             val flushResult = printer.flushPTTPrint()
 
             // End Communication

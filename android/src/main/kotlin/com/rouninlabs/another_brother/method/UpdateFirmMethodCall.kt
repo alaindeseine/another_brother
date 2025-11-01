@@ -61,22 +61,36 @@ class UpdateFirmMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("UpdateFirm", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("UpdateFirm", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("UpdateFirm", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap())
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Update Firmware - only if startCommunication succeeded
             val printResult = printer.updateFirm(filePath)
 
             // End Communication

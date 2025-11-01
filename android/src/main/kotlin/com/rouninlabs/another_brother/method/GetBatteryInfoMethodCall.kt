@@ -57,21 +57,30 @@ class GetBatteryInfoMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetBatteryInfo", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(BatteryInfo().toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetBatteryInfo", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(BatteryInfo().toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetBatteryInfo", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(BatteryInfo().toMap())
+                    }
+                    return@launch
                 }
             }
 
+            // Get Battery Info - only if startCommunication succeeded
             val batterInfo:BatteryInfo = printer.batteryInfo;
 
             // End Communication

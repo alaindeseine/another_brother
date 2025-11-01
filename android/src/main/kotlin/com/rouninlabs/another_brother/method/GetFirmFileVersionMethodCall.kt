@@ -57,21 +57,30 @@ class GetFirmFileVersionMethodCall(val flutterAssets: FlutterPlugin.FlutterAsset
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetFirmFileVersion", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success("")
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetFirmFileVersion", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success("")
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetFirmFileVersion", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success("")
+                    }
+                    return@launch
                 }
             }
 
+            // Get Firmware File Version - only if startCommunication succeeded
             val firmFileVersion = printer.getFirmFileVer(filePath)
 
             // End Communication

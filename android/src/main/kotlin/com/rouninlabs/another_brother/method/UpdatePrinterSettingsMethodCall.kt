@@ -61,22 +61,36 @@ class UpdatePrinterSettingsMethodCall(val flutterAssets: FlutterPlugin.FlutterAs
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("UpdatePrinterSettings", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap())
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("UpdatePrinterSettings", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("UpdatePrinterSettings", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap())
+                    }
+                    return@launch
                 }
             }
 
-            // Send Settings
+            // Send Settings - only if startCommunication succeeded
             val settings: Map<PrinterInfo.PrinterSettingItem, String> = dartSettings.entries.associate { (key, value) -> printerSettingItemFromMap(key) to value }
             val printResult = printer.updatePrinterSettings(settings)
 

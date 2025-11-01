@@ -58,21 +58,30 @@ class GetMediaFileVersionMethodCall(val flutterAssets: FlutterPlugin.FlutterAsse
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetMediaFileVersion", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success("")
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetMediaFileVersion", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success("")
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetMediaFileVersion", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success("")
+                    }
+                    return@launch
                 }
             }
 
+            // Get Media File Version - only if startCommunication succeeded
             val firmFileVersion = printer.getMediaFileVer(filePath)
 
             // End Communication

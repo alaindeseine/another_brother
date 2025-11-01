@@ -65,21 +65,45 @@ class UpdateBluetoothPreferenceMethodCall(val flutterAssets: FlutterPlugin.Flutt
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("UpdateBluetoothPreference", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(hashMapOf(
+                                "printerStatus" to PrinterStatus().apply {
+                                    errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                                }.toMap(),
+                                "btPre" to BluetoothPreference().toMap()
+                            ))
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("UpdateBluetoothPreference", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap(),
+                            "btPre" to BluetoothPreference().toMap()
+                        ))
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("UpdateBluetoothPreference", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(hashMapOf(
+                            "printerStatus" to PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                            }.toMap(),
+                            "btPre" to BluetoothPreference().toMap()
+                        ))
+                    }
+                    return@launch
                 }
             }
 
+            // Update Bluetooth Preference - only if startCommunication succeeded
             val btPrefs = bluetoothPreferenceFromMap(dartBtPre)
             val printResult = printer.updateBluetoothPreference(btPrefs)
 

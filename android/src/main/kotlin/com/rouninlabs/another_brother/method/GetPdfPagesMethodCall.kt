@@ -58,21 +58,30 @@ class GetPdfPagesMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val 
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetPdfPages", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(-1)
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("GetPdfPages", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(-1)
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("GetPdfPages", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests operation may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(-1)
+                    }
+                    return@launch
                 }
             }
 
+            // Get PDF Pages - only if startCommunication succeeded
             val pages = printer.getPDFFilePages(filePath)
 
             // End Communication

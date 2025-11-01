@@ -59,22 +59,30 @@ class StartPttPrintMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             // Start communication with defensive error handling for Bluetooth/WiFi connection issues
             if (isOneTime) {
                 try {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("StartPttPrint", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(false)
+                        }
+                        return@launch
                     }
                 } catch (e: NullPointerException) {
                     Log.e("StartPttPrint", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(false)
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e("StartPttPrint", "Error in startCommunication", e)
-                    // Continue anyway - the comment suggests printing may work without startCommunication
+                    withContext(Dispatchers.Main) {
+                        result.success(false)
+                    }
+                    return@launch
                 }
             }
 
-            // Print Image
+            // Start PTT Print - only if startCommunication succeeded
             val success = printer.startPTTPrint(key, encode)
 
             // End Communication
