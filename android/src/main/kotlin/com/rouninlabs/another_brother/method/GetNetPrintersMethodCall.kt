@@ -54,19 +54,32 @@ class GetNetPrintersMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            val netPrinters = printer.getNetPrinters(models.toTypedArray());
+            // Get Network Printers - wrap in try-catch to handle SDK internal errors
+            try {
+                val netPrinters = printer.getNetPrinters(models.toTypedArray());
 
-            Log.e(TAG, "Printers: $netPrinters")
-            // Encode Printers
-            val dartPrinters:List<Map<String, Any>> = netPrinters.map {
-                Log.e(TAG, "Printer Name: ${it.modelName}" )
-                it.toMap() }
-            Log.e(TAG, " Out Printers: $dartPrinters")
+                Log.e(TAG, "Printers: $netPrinters")
+                // Encode Printers
+                val dartPrinters:List<Map<String, Any>> = netPrinters.map {
+                    Log.e(TAG, "Printer Name: ${it.modelName}" )
+                    it.toMap() }
+                Log.e(TAG, " Out Printers: $dartPrinters")
 
-            withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrinters)
-           }
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrinters)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetNetPrinters", "NPE during network discovery - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(arrayListOf<Map<String, Any>>())
+                }
+            } catch (e: Exception) {
+                Log.e("GetNetPrinters", "Error during network discovery", e)
+                withContext(Dispatchers.Main) {
+                    result.success(arrayListOf<Map<String, Any>>())
+                }
+            }
         }
 
     }

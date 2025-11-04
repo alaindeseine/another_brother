@@ -2,6 +2,7 @@ package com.rouninlabs.another_brother.method
 
 import android.bluetooth.BluetoothAdapter
 import android.content.Context
+import android.util.Log
 import com.brother.ptouch.sdk.BLEPrinter
 import com.brother.ptouch.sdk.Printer
 import com.brother.ptouch.sdk.PrinterInfo
@@ -55,14 +56,27 @@ class GetBlePrintersMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            val blePrinters = printer.getBLEPrinters(BluetoothAdapter.getDefaultAdapter(), timeout);
+            // Get BLE Printers - wrap in try-catch to handle SDK internal errors
+            try {
+                val blePrinters = printer.getBLEPrinters(BluetoothAdapter.getDefaultAdapter(), timeout);
 
-            // Encode Printers
-            val dartPrinters = blePrinters.map { it-> it.toMap() }.toList()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrinters)
-           }
+                // Encode Printers
+                val dartPrinters = blePrinters.map { it-> it.toMap() }.toList()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrinters)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetBlePrinters", "NPE during BLE discovery - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(arrayListOf<Map<String, Any>>())
+                }
+            } catch (e: Exception) {
+                Log.e("GetBlePrinters", "Error during BLE discovery", e)
+                withContext(Dispatchers.Main) {
+                    result.success(arrayListOf<Map<String, Any>>())
+                }
+            }
         }
 
     }

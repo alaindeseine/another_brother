@@ -1,6 +1,7 @@
 package com.rouninlabs.another_brother.method
 
 import android.content.Context
+import android.util.Log
 import com.brother.ptouch.sdk.NetPrinter
 import com.brother.ptouch.sdk.Printer
 import com.brother.ptouch.sdk.PrinterInfo
@@ -55,14 +56,27 @@ class GetNetPrinterInfoMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            val netPrinter = printer.getNetPrinterInfo(ipAddress);
+            // Get Network Printer Info - wrap in try-catch to handle SDK internal errors
+            try {
+                val netPrinter = printer.getNetPrinterInfo(ipAddress);
 
-            // Encode Printers
-            val dartPrinter = netPrinter.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrinter)
-           }
+                // Encode Printers
+                val dartPrinter = netPrinter.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrinter)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetNetPrinterInfo", "NPE during network printer info - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(NetPrinter().toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("GetNetPrinterInfo", "Error during network printer info", e)
+                withContext(Dispatchers.Main) {
+                    result.success(NetPrinter().toMap())
+                }
+            }
         }
 
     }
