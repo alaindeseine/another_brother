@@ -57,18 +57,41 @@ class GetPrinterStatusMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
             // Set Printer Info
             printer.printerInfo = printInfo
 
-            // Start communication with defensive error handling
-            try {
-                if (isOneTime) {
-                    // Note: Starting a communication does not seem to impact whether we can print or
-                    // not. Calling print without calling this seems to still print fine.
+            // Start communication with defensive error handling for Bluetooth/WiFi connection issues
+            if (isOneTime) {
+                try {
                     val started: Boolean = printer.startCommunication()
                     if (!started) {
                         Log.w("GetPrinterStatus", "Failed to start communication with printer")
+                        withContext(Dispatchers.Main) {
+                            result.success(PrinterStatus().apply {
+                                errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                            }.toMap())
+                        }
+                        return@launch
                     }
+                } catch (e: NullPointerException) {
+                    Log.e("GetPrinterStatus", "NPE in startCommunication - Bluetooth/WiFi connection failed", e)
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap())
+                    }
+                    return@launch
+                } catch (e: Exception) {
+                    Log.e("GetPrinterStatus", "Error in startCommunication", e)
+                    withContext(Dispatchers.Main) {
+                        result.success(PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap())
+                    }
+                    return@launch
                 }
+            }
 
-                // Get Printer Status - this may throw NPE if socket is null
+            // Get Printer Status - only if startCommunication succeeded
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
                 val printResult = printer.printerStatus
 
                 // End Communication
@@ -83,14 +106,14 @@ class GetPrinterStatusMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
                     result.success(dartPrintStatus)
                 }
             } catch (e: NullPointerException) {
-                Log.e("GetPrinterStatus", "NPE in getPrinterStatus - Socket connection failed", e)
+                Log.e("GetPrinterStatus", "NPE during get operation - likely SDK internal error", e)
                 withContext(Dispatchers.Main) {
                     result.success(PrinterStatus().apply {
                         errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
                     }.toMap())
                 }
             } catch (e: Exception) {
-                Log.e("GetPrinterStatus", "Error in getPrinterStatus", e)
+                Log.e("GetPrinterStatus", "Error during get operation", e)
                 withContext(Dispatchers.Main) {
                     result.success(PrinterStatus().apply {
                         errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND

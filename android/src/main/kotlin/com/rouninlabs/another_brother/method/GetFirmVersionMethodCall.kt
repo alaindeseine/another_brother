@@ -80,18 +80,31 @@ class GetFirmVersionMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             }
 
             // Get Firmware Version - only if startCommunication succeeded
-            val firmVersion = printer.firmVersion
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val firmVersion = printer.firmVersion
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(firmVersion)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetFirmVersion", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
+            } catch (e: Exception) {
+                Log.e("GetFirmVersion", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(firmVersion)
-           }
         }
 
     }

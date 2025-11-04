@@ -1,6 +1,7 @@
 package com.rouninlabs.another_brother.method
 
 import android.content.Context
+import android.util.Log
 import com.brother.ptouch.sdk.Printer
 import com.rouninlabs.another_brother.BrotherManager
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -38,17 +39,33 @@ class EndCommunicationMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
 
             val printer:Printer = trackedPrinter
 
-            val success = printer.endCommunication()
+            // End Communication - wrap in try-catch to handle SDK internal errors
+            try {
+                val success = printer.endCommunication()
 
-            if (success) {
+                if (success) {
+                    BrotherManager.untrackPrinter(printerId = printerId)
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(success)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("EndCommunication", "NPE during endCommunication - likely SDK internal error", e)
+                // Still untrack the printer since the connection is likely broken
                 BrotherManager.untrackPrinter(printerId = printerId)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("EndCommunication", "Error during endCommunication", e)
+                // Still untrack the printer since the connection is likely broken
+                BrotherManager.untrackPrinter(printerId = printerId)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(true)
-               //result.error("Error", "Method not implemented", "")
-           }
         }
 
     }

@@ -102,26 +102,49 @@ class GetPrinterSettingsMethodCall(val flutterAssets: FlutterPlugin.FlutterAsset
                 }
             }
 
-            val settingKeys = dartKeys.map { printerSettingItemFromMap(it) }
-            val outValues:MutableMap<PrinterInfo.PrinterSettingItem, String> = hashMapOf()
-
             // Get Printer Settings - only if startCommunication succeeded
-            val printResult = printer.getPrinterSettings(settingKeys, outValues);
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val settingKeys = dartKeys.map { printerSettingItemFromMap(it) }
+                val outValues:MutableMap<PrinterInfo.PrinterSettingItem, String> = hashMapOf()
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                val printResult = printer.getPrinterSettings(settingKeys, outValues);
+
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                val dartOutValues:Map<Map<String, Any>, Any> = outValues.entries.associate { (key, value) -> key.toMap() to value }
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(hashMapOf(
+                        "printerStatus" to dartPrintStatus,
+                        "values" to dartOutValues
+                    ))
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetPrinterSettings", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap(),
+                        "values" to hashMapOf<Map<String, Any>, Any>()
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.e("GetPrinterSettings", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap(),
+                        "values" to hashMapOf<Map<String, Any>, Any>()
+                    ))
+                }
             }
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-            val dartOutValues:Map<Map<String, Any>, Any> = outValues.entries.associate { (key, value) -> key.toMap() to value }
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(hashMapOf(
-                   "printerStatus" to dartPrintStatus,
-                   "values" to dartOutValues
-               ))
-           }
         }
 
     }

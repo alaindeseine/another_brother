@@ -83,17 +83,30 @@ class StartPttPrintMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             }
 
             // Start PTT Print - only if startCommunication succeeded
-            val success = printer.startPTTPrint(key, encode)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val success = printer.startPTTPrint(key, encode)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(success)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("StartPttPrint", "NPE during print operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("StartPttPrint", "Error during print operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(success)
-           }
         }
 
     }

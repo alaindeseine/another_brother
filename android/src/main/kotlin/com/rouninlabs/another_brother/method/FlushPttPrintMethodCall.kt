@@ -89,19 +89,36 @@ class FlushPttPrintMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             }
 
             // Flush PTT Print - only if startCommunication succeeded
-            val flushResult = printer.flushPTTPrint()
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val flushResult = printer.flushPTTPrint()
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = flushResult.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("FlushPttPrint", "NPE during print operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("FlushPttPrint", "Error during print operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap())
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = flushResult.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

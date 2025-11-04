@@ -83,17 +83,30 @@ class ReplaceTextIndexMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets,
             }
 
             // Replace Text Index - only if startCommunication succeeded
-            val success = printer.replaceTextIndex(data, index)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val success = printer.replaceTextIndex(data, index)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(success)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("ReplaceTextIndex", "NPE during replace operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("ReplaceTextIndex", "Error during replace operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(success)
-           }
         }
 
     }

@@ -101,25 +101,48 @@ class GetTemplateListMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
                 }
             }
 
-            val templateList:ArrayList<TemplateInfo> = arrayListOf()
             // Get Template List - only if startCommunication succeeded
-            val printResult = printer.getTemplateList(templateList)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val templateList:ArrayList<TemplateInfo> = arrayListOf()
+                val printResult = printer.getTemplateList(templateList)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                val dartTemplateList = templateList.map { it.toMap() }.toList()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(hashMapOf<String, Any>(
+                        "printerStatus" to dartPrintStatus,
+                        "templateList" to dartTemplateList
+                    ))
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetTemplateList", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf<String, Any>(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap(),
+                        "templateList" to arrayListOf<Map<String, Any>>()
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.e("GetTemplateList", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf<String, Any>(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap(),
+                        "templateList" to arrayListOf<Map<String, Any>>()
+                    ))
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-            val dartTemplateList = templateList.map { it.toMap() }.toList()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(hashMapOf<String, Any>(
-                     "printerStatus" to dartPrintStatus,
-                      "templateList" to dartTemplateList
-               ))
-           }
         }
 
     }

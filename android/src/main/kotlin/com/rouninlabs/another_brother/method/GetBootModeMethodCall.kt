@@ -81,18 +81,31 @@ class GetBootModeMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val 
             }
 
             // Get Boot Mode - only if startCommunication succeeded
-            val bootMode = printer.bootMode
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val bootMode = printer.bootMode
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(bootMode)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetBootMode", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(0)
+                }
+            } catch (e: Exception) {
+                Log.e("GetBootMode", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(0)
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(bootMode)
-           }
         }
 
     }

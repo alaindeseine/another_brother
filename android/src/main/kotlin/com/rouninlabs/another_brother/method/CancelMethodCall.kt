@@ -78,17 +78,30 @@ class CancelMethodCall(val flutterAssets:FlutterPlugin.FlutterAssets, val contex
             }
 
             // Cancel - only if startCommunication succeeded
-            val cancelResult = printer.cancel()
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val cancelResult = printer.cancel()
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(cancelResult)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("Cancel", "NPE during cancel operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("Cancel", "Error during cancel operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(cancelResult)
-           }
         }
     }
 }

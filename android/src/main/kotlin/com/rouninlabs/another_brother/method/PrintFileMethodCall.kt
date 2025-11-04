@@ -91,19 +91,36 @@ class PrintFileMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val co
             }
 
             // Print File - only if startCommunication succeeded
-            val printResult = printer.printFile(filePath)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val printResult = printer.printFile(filePath)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap(context = context)
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("PrintFile", "NPE during print operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap(context = context))
+                }
+            } catch (e: Exception) {
+                Log.e("PrintFile", "Error during print operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap(context = context))
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap(context = context)
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

@@ -81,18 +81,31 @@ class GetSerialNumberMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
             }
 
             // Get Serial Number - only if startCommunication succeeded
-            val serialNumber = printer.serialNumber
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val serialNumber = printer.serialNumber
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(serialNumber)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetSerialNumber", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
+            } catch (e: Exception) {
+                Log.e("GetSerialNumber", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(serialNumber)
-           }
         }
 
     }

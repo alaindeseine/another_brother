@@ -102,24 +102,47 @@ class GetBluetoothPreferenceMethodCall(val flutterAssets: FlutterPlugin.FlutterA
                 }
             }
 
-            val outPrefs = BluetoothPreference()
             // Get Bluetooth Preference - only if startCommunication succeeded
-            val printResult = printer.getBluetoothPreference(outPrefs);
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val outPrefs = BluetoothPreference()
+                val printResult = printer.getBluetoothPreference(outPrefs);
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                val dartOutValues:Map<String, Any> = outPrefs.toMap();
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(hashMapOf(
+                        "printerStatus" to dartPrintStatus,
+                        "values" to dartOutValues
+                    ))
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetBluetoothPreference", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                        }.toMap(),
+                        "btPre" to BluetoothPreference().toMap()
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.e("GetBluetoothPreference", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(hashMapOf(
+                        "printerStatus" to PrinterStatus().apply {
+                            errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                        }.toMap(),
+                        "btPre" to BluetoothPreference().toMap()
+                    ))
+                }
             }
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-            val dartOutValues:Map<String, Any> = outPrefs.toMap();
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(hashMapOf(
-                   "printerStatus" to dartPrintStatus,
-                   "values" to dartOutValues
-               ))
-           }
         }
 
     }

@@ -91,19 +91,36 @@ class PrintFileListMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             }
 
             // Print File List - only if startCommunication succeeded
-            val printResult = printer.printFileList(filePathList)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val printResult = printer.printFileList(filePathList)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("PrintFileList", "NPE during print operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("PrintFileList", "Error during print operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap())
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

@@ -81,21 +81,34 @@ class GetLabelInfoMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val
             }
 
             // Get Label Info - only if startCommunication succeeded
-            val labelInfo = printer.labelInfo
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val labelInfo = printer.labelInfo
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                Log.e(TAG, "Label Info: ${labelInfo.labelNameIndex}")
+
+                // Encode PrinterStatus
+                val dartLabelParam = labelInfo.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartLabelParam)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetLabelInfo", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(LabelInfo().toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("GetLabelInfo", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(LabelInfo().toMap())
+                }
             }
-
-            Log.e(TAG, "Label Info: ${labelInfo.labelNameIndex}")
-
-            // Encode PrinterStatus
-            val dartLabelParam = labelInfo.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartLabelParam)
-           }
         }
 
     }

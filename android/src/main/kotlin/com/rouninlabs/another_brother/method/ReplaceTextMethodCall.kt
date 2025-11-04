@@ -81,17 +81,30 @@ class ReplaceTextMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val 
             }
 
             // Replace Text - only if startCommunication succeeded
-            val success = printer.replaceText(data)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val success = printer.replaceText(data)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(success)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("ReplaceText", "NPE during replace operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
+            } catch (e: Exception) {
+                Log.e("ReplaceText", "Error during replace operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(false)
+                }
             }
-
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(success)
-           }
         }
 
     }

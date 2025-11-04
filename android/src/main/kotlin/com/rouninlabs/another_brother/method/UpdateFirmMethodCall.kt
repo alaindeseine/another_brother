@@ -91,19 +91,36 @@ class UpdateFirmMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
             }
 
             // Update Firmware - only if startCommunication succeeded
-            val printResult = printer.updateFirm(filePath)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val printResult = printer.updateFirm(filePath)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("UpdateFirm", "NPE during update operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("UpdateFirm", "Error during update operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap())
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

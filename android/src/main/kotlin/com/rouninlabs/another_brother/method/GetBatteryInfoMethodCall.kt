@@ -81,18 +81,31 @@ class GetBatteryInfoMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, v
             }
 
             // Get Battery Info - only if startCommunication succeeded
-            val batterInfo:BatteryInfo = printer.batteryInfo;
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val batterInfo:BatteryInfo = printer.batteryInfo;
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(batterInfo.toMap())
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetBatteryInfo", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(BatteryInfo().toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("GetBatteryInfo", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(BatteryInfo().toMap())
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(batterInfo.toMap())
-           }
         }
 
     }

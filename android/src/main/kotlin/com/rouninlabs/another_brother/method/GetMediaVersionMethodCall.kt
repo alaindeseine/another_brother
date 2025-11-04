@@ -80,18 +80,31 @@ class GetMediaVersionMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
             }
 
             // Get Media Version - only if startCommunication succeeded
-            val mediaVersion = printer.mediaVersion
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val mediaVersion = printer.mediaVersion
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(mediaVersion)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetMediaVersion", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
+            } catch (e: Exception) {
+                Log.e("GetMediaVersion", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(mediaVersion)
-           }
         }
 
     }

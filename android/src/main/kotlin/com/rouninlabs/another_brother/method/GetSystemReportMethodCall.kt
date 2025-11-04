@@ -81,18 +81,31 @@ class GetSystemReportMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, 
             }
 
             // Get System Report - only if startCommunication succeeded
-            val systemReport = printer.systemReport
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val systemReport = printer.systemReport
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(systemReport)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetSystemReport", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
+            } catch (e: Exception) {
+                Log.e("GetSystemReport", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success("")
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(systemReport)
-           }
         }
 
     }

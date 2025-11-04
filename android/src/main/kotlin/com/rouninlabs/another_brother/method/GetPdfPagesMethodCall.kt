@@ -82,18 +82,31 @@ class GetPdfPagesMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val 
             }
 
             // Get PDF Pages - only if startCommunication succeeded
-            val pages = printer.getPDFFilePages(filePath)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val pages = printer.getPDFFilePages(filePath)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(pages)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetPdfPages", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(-1)
+                }
+            } catch (e: Exception) {
+                Log.e("GetPdfPages", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(-1)
+                }
             }
-
-            // Encode PrinterStatus
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(pages)
-           }
         }
 
     }

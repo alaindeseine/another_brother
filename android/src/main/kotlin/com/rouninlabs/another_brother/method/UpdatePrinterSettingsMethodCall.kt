@@ -91,20 +91,37 @@ class UpdatePrinterSettingsMethodCall(val flutterAssets: FlutterPlugin.FlutterAs
             }
 
             // Send Settings - only if startCommunication succeeded
-            val settings: Map<PrinterInfo.PrinterSettingItem, String> = dartSettings.entries.associate { (key, value) -> printerSettingItemFromMap(key) to value }
-            val printResult = printer.updatePrinterSettings(settings)
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val settings: Map<PrinterInfo.PrinterSettingItem, String> = dartSettings.entries.associate { (key, value) -> printerSettingItemFromMap(key) to value }
+                val printResult = printer.updatePrinterSettings(settings)
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("UpdatePrinterSettings", "NPE during update operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("UpdatePrinterSettings", "Error during update operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap())
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

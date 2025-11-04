@@ -82,19 +82,32 @@ class GetLabelParamMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, va
             }
 
             // Get Label Param - only if startCommunication succeeded
-            val labelParam = printer.labelParam
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val labelParam = printer.labelParam
 
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = labelParam.toMap()
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("GetLabelParam", "NPE during get operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(LabelParam().toMap())
+                }
+            } catch (e: Exception) {
+                Log.e("GetLabelParam", "Error during get operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(LabelParam().toMap())
+                }
             }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = labelParam.toMap()
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-           }
         }
 
     }

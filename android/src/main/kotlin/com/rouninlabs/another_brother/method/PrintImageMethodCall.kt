@@ -98,31 +98,43 @@ class PrintImageMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
             }
 
             // Print Image - only if startCommunication succeeded
-            val printResult = try {
-                printer.printImage(bitmap)
-            }
-            catch (e:Exception ) {
-                Log.e("another-brother", "Print image error: ", e);
-                PrinterStatus().apply {
-                    errorCode = PrinterInfo.ErrorCode.ERROR_SYSTEM_ERROR
+            // Wrap in try-catch to handle SDK internal errors (e.g., null OutputStream)
+            try {
+                val printResult = try {
+                    printer.printImage(bitmap)
+                } finally {
+                    // Recycle bitmap
+                    if (!bitmap.isRecycled) {
+                        bitmap.recycle()
+                    }
+                }
+
+                // End Communication
+                if (isOneTime) {
+                    val connectionClosed: Boolean = printer.endCommunication()
+                }
+
+                // Encode PrinterStatus
+                val dartPrintStatus = printResult.toMap(context = context)
+                withContext(Dispatchers.Main) {
+                    // Set result Printer status.
+                    result.success(dartPrintStatus)
+                }
+            } catch (e: NullPointerException) {
+                Log.e("PrintImage", "NPE during print operation - likely SDK internal error", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_COMMUNICATION_ERROR
+                    }.toMap(context = context))
+                }
+            } catch (e: Exception) {
+                Log.e("PrintImage", "Error during print operation", e)
+                withContext(Dispatchers.Main) {
+                    result.success(PrinterStatus().apply {
+                        errorCode = PrinterInfo.ErrorCode.ERROR_BROTHER_PRINTER_NOT_FOUND
+                    }.toMap(context = context))
                 }
             }
-
-            // End Communication
-            if (isOneTime) {
-                val connectionClosed: Boolean = printer.endCommunication()
-            }
-            // Recycle bitmap
-            if (!bitmap.isRecycled) {
-                bitmap.recycle()
-            }
-
-            // Encode PrinterStatus
-            val dartPrintStatus = printResult.toMap(context = context)
-           withContext(Dispatchers.Main) {
-               // Set result Printer status.
-               result.success(dartPrintStatus)
-               //result.error("Error", "Method not implemented", "")
            }
         }
 
