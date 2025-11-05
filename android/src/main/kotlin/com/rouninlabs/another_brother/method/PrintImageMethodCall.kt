@@ -135,7 +135,6 @@ class PrintImageMethodCall(val flutterAssets: FlutterPlugin.FlutterAssets, val c
                     }.toMap(context = context))
                 }
             }
-           }
         }
 
     }
